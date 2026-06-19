@@ -76,4 +76,4 @@ grub.cfg         - GRUB configuration
 
 ## License
 
-Apache 2.0 License
+GPLv2 License
