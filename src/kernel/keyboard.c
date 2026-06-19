@@ -2,6 +2,7 @@
 #include "io.h"
 #include "isr.h"
 #include "interrupts.h"
+#include "device.h"
 
 #define BUFFER_SIZE 256
 #define KEYBOARD_STATUS_PORT 0x64
@@ -157,10 +158,51 @@ static void keyboard_controller_reset() {
     }
 }
 
+static int keyboard_device_open(device_t* dev) {
+    return 0;
+}
+
+static int keyboard_device_close(device_t* dev) {
+    return 0;
+}
+
+static int keyboard_device_read(device_t* dev, void* buffer, size_t size) {
+    if (size == 0 || buffer == NULL) return -1;
+    char* buf = (char*)buffer;
+    int count = 0;
+    
+    while (count < (int)size && buffer_count > 0) {
+        buf[count++] = keyboard_buffer[buffer_tail];
+        buffer_tail = (buffer_tail + 1) % BUFFER_SIZE;
+        buffer_count--;
+    }
+    
+    return count;
+}
+
+static int keyboard_device_write(device_t* dev, const void* buffer, size_t size) {
+    return -1;
+}
+
+static int keyboard_device_ioctl(device_t* dev, int cmd, void* arg) {
+    return -1;
+}
+
+static device_t keyboard_device = {
+    .name = "keyboard",
+    .type = DEVICE_TYPE_KEYBOARD,
+    .open = keyboard_device_open,
+    .close = keyboard_device_close,
+    .read = keyboard_device_read,
+    .write = keyboard_device_write,
+    .ioctl = keyboard_device_ioctl
+};
+
 void keyboard_init() {
     keyboard_controller_reset();
     register_irq_handler(KEYBOARD_IRQ, keyboard_handler);
     pic_enable_irq(KEYBOARD_IRQ);
+    device_register(&keyboard_device);
 }
 
 char keyboard_getc() {

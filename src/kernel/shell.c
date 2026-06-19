@@ -368,7 +368,7 @@ static int cmd_whoami(int argc, char** argv) {
 }
 
 static int cmd_version(int argc, char** argv) {
-    vga_puts("Kil0yOS v1.0.3\n");
+    vga_puts("Kil0yOS v1.0.4\n");
     vga_puts("A simple 32-bit x86 operating system\n");
     return 0;
 }

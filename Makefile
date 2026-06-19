@@ -24,7 +24,8 @@ KERNEL_SRCS = $(SRCDIR)/kernel/main.c \
               $(SRCDIR)/kernel/fs.c \
               $(SRCDIR)/kernel/shell.c \
               $(SRCDIR)/kernel/edit.c \
-              $(SRCDIR)/kernel/disk.c
+              $(SRCDIR)/kernel/disk.c \
+              $(SRCDIR)/kernel/device.c
 
 KERNEL_OBJS = $(patsubst $(SRCDIR)/%.c, $(BUILDDIR)/%.o, $(KERNEL_SRCS))
 KERNEL_ASM_OBJS = $(BUILDDIR)/kernel/isr_asm.o

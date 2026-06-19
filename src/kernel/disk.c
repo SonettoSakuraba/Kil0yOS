@@ -1,5 +1,7 @@
 #include "disk.h"
 #include "io.h"
+#include "device.h"
+#include "string.h"
 
 #define ATA_PRIMARY_IO_BASE 0x1F0
 #define ATA_SECONDARY_IO_BASE 0x170
@@ -24,6 +26,22 @@
 #define ATA_STATUS_ERROR 0x01
 
 static int disk_present = 0;
+
+static int disk_device_open(device_t* dev);
+static int disk_device_close(device_t* dev);
+static int disk_device_read(device_t* dev, void* buffer, size_t size);
+static int disk_device_write(device_t* dev, const void* buffer, size_t size);
+static int disk_device_ioctl(device_t* dev, int cmd, void* arg);
+
+static device_t disk_device = {
+    .name = "disk",
+    .type = DEVICE_TYPE_DISK,
+    .open = disk_device_open,
+    .close = disk_device_close,
+    .read = disk_device_read,
+    .write = disk_device_write,
+    .ioctl = disk_device_ioctl
+};
 
 static void disk_wait_ready() {
     uint8_t status;
@@ -70,6 +88,7 @@ void disk_init() {
     }
     
     disk_present = 1;
+    device_register(&disk_device);
 }
 
 int disk_read_sector(uint32_t sector, uint8_t* buffer) {
@@ -120,4 +139,68 @@ int disk_write_sector(uint32_t sector, const uint8_t* buffer) {
     disk_wait_ready();
     
     return 0;
+}
+
+static int disk_device_open(device_t* dev) {
+    return 0;
+}
+
+static int disk_device_close(device_t* dev) {
+    return 0;
+}
+
+static int disk_device_read(device_t* dev, void* buffer, size_t size) {
+    if (size == 0 || buffer == NULL) return -1;
+    uint8_t* buf = (uint8_t*)buffer;
+    uint32_t sector = 0;
+    int offset = 0;
+    
+    while (offset < (int)size && sector < DISK_MAX_SECTORS) {
+        uint8_t sector_buf[DISK_SECTOR_SIZE];
+        if (disk_read_sector(sector, sector_buf) != 0) {
+            return offset > 0 ? offset : -1;
+        }
+        
+        int copy_size = DISK_SECTOR_SIZE;
+        if (offset + copy_size > (int)size) {
+            copy_size = size - offset;
+        }
+        
+        memcpy(buf + offset, sector_buf, copy_size);
+        offset += copy_size;
+        sector++;
+    }
+    
+    return offset;
+}
+
+static int disk_device_write(device_t* dev, const void* buffer, size_t size) {
+    if (size == 0 || buffer == NULL) return -1;
+    const uint8_t* buf = (const uint8_t*)buffer;
+    uint32_t sector = 0;
+    int offset = 0;
+    
+    while (offset < (int)size && sector < DISK_MAX_SECTORS) {
+        uint8_t sector_buf[DISK_SECTOR_SIZE] = {0};
+        
+        int copy_size = DISK_SECTOR_SIZE;
+        if (offset + copy_size > (int)size) {
+            copy_size = size - offset;
+        }
+        
+        memcpy(sector_buf, buf + offset, copy_size);
+        
+        if (disk_write_sector(sector, sector_buf) != 0) {
+            return offset > 0 ? offset : -1;
+        }
+        
+        offset += copy_size;
+        sector++;
+    }
+    
+    return offset;
+}
+
+static int disk_device_ioctl(device_t* dev, int cmd, void* arg) {
+    return -1;
 }
