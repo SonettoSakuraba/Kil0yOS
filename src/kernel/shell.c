@@ -368,7 +368,7 @@ static int cmd_whoami(int argc, char** argv) {
 }
 
 static int cmd_version(int argc, char** argv) {
-    vga_puts("Kil0yOS v1.0.2\n");
+    vga_puts("Kil0yOS v1.0.3\n");
     vga_puts("A simple 32-bit x86 operating system\n");
     return 0;
 }
@@ -413,6 +413,144 @@ void shell_init() {
     update_prompt();
 }
 
+static int find_last_word_start(char* str, int len) {
+    int i = len - 1;
+    while (i >= 0 && (str[i] == ' ' || str[i] == '\t')) {
+        i--;
+    }
+    while (i >= 0 && str[i] != ' ' && str[i] != '\t') {
+        i--;
+    }
+    return i + 1;
+}
+
+static int tab_complete_command(char* prefix, char* result) {
+    int match_count = 0;
+    char longest_match[MAX_COMMAND_LENGTH] = "";
+    int longest_len = 0;
+    
+    for (int i = 0; commands[i].name != NULL; i++) {
+        if (strncmp(commands[i].name, prefix, strlen(prefix)) == 0) {
+            match_count++;
+            
+            if (match_count == 1) {
+                strcpy(longest_match, commands[i].name);
+                longest_len = strlen(longest_match);
+            } else {
+                int j = 0;
+                while (j < longest_len && j < (int)strlen(commands[i].name) && 
+                       longest_match[j] == commands[i].name[j]) {
+                    j++;
+                }
+                longest_len = j;
+                longest_match[j] = '\0';
+            }
+        }
+    }
+    
+    if (match_count == 0) return 0;
+    
+    if (match_count == 1) {
+        strcpy(result, longest_match);
+        return 1;
+    }
+    
+    strcpy(result, longest_match);
+    return match_count;
+}
+
+static int tab_complete_path(char* prefix, char* result) {
+    fs_entry_t* search_dir = fs_current();
+    char dir_path[MAX_PATH_LENGTH] = "";
+    char file_prefix[MAX_PATH_LENGTH] = "";
+    
+    char* last_slash = strrchr(prefix, '/');
+    if (last_slash != NULL) {
+        strncpy(dir_path, prefix, last_slash - prefix + 1);
+        strcpy(file_prefix, last_slash + 1);
+        
+        fs_entry_t* dir = fs_resolve_path(dir_path);
+        if (dir != NULL && dir->type == FS_TYPE_DIRECTORY) {
+            search_dir = dir;
+        }
+    } else {
+        strcpy(file_prefix, prefix);
+    }
+    
+    int match_count = 0;
+    char longest_match[MAX_PATH_LENGTH] = "";
+    int longest_len = 0;
+    
+    for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
+        if (search_dir->children[i] != NULL) {
+            const char* name = search_dir->children[i]->name;
+            if (strncmp(name, file_prefix, strlen(file_prefix)) == 0) {
+                match_count++;
+                
+                if (match_count == 1) {
+                    strcpy(longest_match, name);
+                    longest_len = strlen(longest_match);
+                } else {
+                    int j = 0;
+                    while (j < longest_len && j < (int)strlen(name) && 
+                           longest_match[j] == name[j]) {
+                        j++;
+                    }
+                    longest_len = j;
+                    longest_match[j] = '\0';
+                }
+            }
+        }
+    }
+    
+    if (match_count == 0) return 0;
+    
+    if (match_count == 1) {
+        strcpy(result, longest_match);
+        return 1;
+    }
+    
+    strcpy(result, longest_match);
+    return match_count;
+}
+
+static void tab_complete(char* command, int* cmd_len) {
+    int word_start = find_last_word_start(command, *cmd_len);
+    int word_len = *cmd_len - word_start;
+    
+    if (word_len == 0) {
+        return;
+    }
+    
+    char prefix[MAX_COMMAND_LENGTH];
+    strncpy(prefix, command + word_start, word_len);
+    prefix[word_len] = '\0';
+    
+    char result[MAX_COMMAND_LENGTH];
+    int match_count;
+    
+    if (word_start == 0) {
+        match_count = tab_complete_command(prefix, result);
+    } else {
+        match_count = tab_complete_path(prefix, result);
+    }
+    
+    if (match_count == 0) return;
+    
+    int add_len = strlen(result) - word_len;
+    if (add_len > 0 && *cmd_len + add_len < MAX_COMMAND_LENGTH - 1) {
+        memmove(command + word_start + strlen(result), 
+                command + *cmd_len, 
+                MAX_COMMAND_LENGTH - *cmd_len - 1);
+        strcpy(command + word_start, result);
+        *cmd_len += add_len;
+        
+        for (int i = 0; i < add_len; i++) {
+            vga_putchar(result[word_len + i]);
+        }
+    }
+}
+
 void shell_run() {
     char command[MAX_COMMAND_LENGTH];
     int cmd_len = 0;
@@ -438,10 +576,7 @@ void shell_run() {
                     vga_putchar('\b');
                 }
             } else if (c == '\t') {
-                for (int i = 0; i < 4 && cmd_len < MAX_COMMAND_LENGTH - 1; i++) {
-                    command[cmd_len++] = ' ';
-                    vga_putchar(' ');
-                }
+                tab_complete(command, &cmd_len);
             } else {
                 command[cmd_len++] = c;
                 vga_putchar(c);

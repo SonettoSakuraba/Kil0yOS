@@ -83,3 +83,48 @@ void* memcpy(void* dest, const void* src, size_t num) {
     while (num--) *d++ = *s++;
     return dest;
 }
+
+int strncmp(const char* str1, const char* str2, size_t num) {
+    while (num && *str1 && *str2 && *str1 == *str2) {
+        str1++;
+        str2++;
+        num--;
+    }
+    if (num == 0) return 0;
+    return *str1 - *str2;
+}
+
+char* strncpy(char* dest, const char* src, size_t num) {
+    char* d = dest;
+    while (num && *src) {
+        *d++ = *src++;
+        num--;
+    }
+    while (num--) {
+        *d++ = '\0';
+    }
+    return dest;
+}
+
+char* strrchr(const char* str, int c) {
+    char* last = NULL;
+    while (*str) {
+        if (*str == c) last = (char*)str;
+        str++;
+    }
+    return last;
+}
+
+void* memmove(void* dest, const void* src, size_t num) {
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+    
+    if (d < s) {
+        while (num--) *d++ = *s++;
+    } else {
+        d += num;
+        s += num;
+        while (num--) *--d = *--s;
+    }
+    return dest;
+}

@@ -11,5 +11,9 @@ char* strchr(const char* str, int c);
 char* strtok(char* str, const char* delim);
 void* memset(void* ptr, int value, size_t num);
 void* memcpy(void* dest, const void* src, size_t num);
+int strncmp(const char* str1, const char* str2, size_t num);
+char* strncpy(char* dest, const char* src, size_t num);
+char* strrchr(const char* str, int c);
+void* memmove(void* dest, const void* src, size_t num);
 
 #endif
