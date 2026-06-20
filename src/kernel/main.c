@@ -8,6 +8,27 @@
 #include "shell.h"
 #include "fs.h"
 #include "device.h"
+#include "pit.h"
+#include "scheduler.h"
+
+/* Test tasks for round-robin demonstration */
+static void test_task1() {
+    while (1) {
+        vga_set_color(vga_entry_color(COLOR_LIGHT_GREEN, COLOR_BLACK));
+        vga_puts("[Task 1 running]\n");
+        vga_set_color(vga_entry_color(COLOR_WHITE, COLOR_BLACK));
+        for (volatile uint32_t i = 0; i < 3000000; i++);
+    }
+}
+
+static void test_task2() {
+    while (1) {
+        vga_set_color(vga_entry_color(COLOR_LIGHT_RED, COLOR_BLACK));
+        vga_puts("[Task 2 running]\n");
+        vga_set_color(vga_entry_color(COLOR_WHITE, COLOR_BLACK));
+        for (volatile uint32_t i = 0; i < 3000000; i++);
+    }
+}
 
 void kernel_main() {
     vga_init();
@@ -56,6 +77,14 @@ void kernel_main() {
     
     vga_puts("\nWelcome to Kil0yOS!\n");
     vga_puts("Type 'help' for available commands.\n\n");
+    
+    /* [10] Initialize scheduler and create demo tasks */
+    scheduler_init();
+    task_create(test_task1, "test1");
+    task_create(test_task2, "test2");
+    
+    /* [11] Start PIT timer at 100 Hz – enables preemptive multi-tasking */
+    pit_init(100);
     
     enable_interrupts();
     

@@ -12,8 +12,8 @@ typedef struct interrupt_frame {
 } __attribute__((packed)) interrupt_frame_t;
 
 void isr_init();
-void isr_handler(interrupt_frame_t* frame);
-void irq_handler(interrupt_frame_t* frame);
+uint32_t isr_handler(interrupt_frame_t* frame);
+uint32_t irq_handler(interrupt_frame_t* frame);
 void register_irq_handler(uint8_t irq, void (*handler)(interrupt_frame_t*));
 
 extern void isr0();

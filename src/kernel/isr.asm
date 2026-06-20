@@ -108,7 +108,8 @@ isr_common_stub:
     mov eax, esp
     push eax
     call isr_handler
-    pop eax
+    add esp, 4
+    mov esp, eax  ; allow context switch (unused for now)
     
     pop gs
     pop fs
@@ -134,7 +135,8 @@ irq_common_stub:
     mov eax, esp
     push eax
     call irq_handler
-    pop eax
+    add esp, 4     ; pop the argument
+    mov esp, eax   ; switch to (potentially new) task stack
     
     pop gs
     pop fs

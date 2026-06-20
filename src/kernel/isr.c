@@ -1,6 +1,8 @@
 #include "isr.h"
 #include "idt.h"
 #include "io.h"
+#include "interrupts.h"
+#include "scheduler.h"
 
 #define IRQ0 32
 
@@ -66,13 +68,23 @@ void isr_init() {
     isr_set_gate(47, irq15);
 }
 
-void isr_handler(interrupt_frame_t* frame) {
+uint32_t isr_handler(interrupt_frame_t* frame) {
+    (void)frame;
+    return (uint32_t)frame;
 }
 
-void irq_handler(interrupt_frame_t* frame) {
+uint32_t irq_handler(interrupt_frame_t* frame) {
     uint8_t irq_num = frame->interrupt_number - IRQ0;
     
     if (irq_handlers[irq_num] != 0) {
         irq_handlers[irq_num](frame);
     }
+    
+    // Timer (IRQ 0) – invoke the round-robin scheduler
+    if (irq_num == 0) {
+        pic_send_eoi(0);
+        return scheduler_tick((uint32_t)frame);
+    }
+    
+    return (uint32_t)frame;
 }
