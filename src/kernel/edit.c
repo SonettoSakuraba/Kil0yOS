@@ -176,9 +176,23 @@ static void edit_load_file(const char* fname) {
         return;
     }
     
-    uint8_t buffer[MAX_FILE_SIZE];
-    int size = fs_read_file(file, buffer, MAX_FILE_SIZE);
+    if (file->size == 0) {
+        lines[0][0] = '\0';
+        line_count = 1;
+        return;
+    }
+    
+    size_t buffer_size = file->size < MAX_FILE_SIZE ? file->size : MAX_FILE_SIZE;
+    uint8_t* buffer = (uint8_t*)kmalloc(buffer_size + 1);
+    if (buffer == NULL) {
+        lines[0][0] = '\0';
+        line_count = 1;
+        return;
+    }
+    
+    int size = fs_read_file(file, buffer, buffer_size);
     if (size <= 0) {
+        kfree(buffer);
         lines[0][0] = '\0';
         line_count = 1;
         return;
@@ -206,6 +220,8 @@ static void edit_load_file(const char* fname) {
         }
     }
     
+    kfree(buffer);
+    
     if (line_count == 0) {
         lines[0][0] = '\0';
         line_count = 1;
@@ -213,12 +229,22 @@ static void edit_load_file(const char* fname) {
 }
 
 static void edit_save_file(const char* fname) {
-    char content[MAX_FILE_SIZE];
-    int pos = 0;
+    int total_size = 0;
+    for (int i = 0; i < line_count; i++) {
+        total_size += strlen(lines[i]) + 1;
+    }
     
+    if (total_size > MAX_FILE_SIZE) {
+        total_size = MAX_FILE_SIZE;
+    }
+    
+    char* content = (char*)kmalloc(total_size + 1);
+    if (content == NULL) return;
+    
+    int pos = 0;
     for (int i = 0; i < line_count; i++) {
         int len = strlen(lines[i]);
-        if (pos + len + 1 >= MAX_FILE_SIZE) break;
+        if (pos + len + 1 >= total_size) break;
         
         memcpy(content + pos, lines[i], len);
         pos += len;
@@ -235,6 +261,8 @@ static void edit_save_file(const char* fname) {
     if (file != NULL && file->type == FS_TYPE_FILE) {
         fs_write_file(file, (uint8_t*)content, pos);
     }
+    
+    kfree(content);
 }
 
 void edit_file(const char* fname) {
