@@ -1,6 +1,8 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
-
+// The maximum number of processes is 256.
+// But the maximum capacity of my affection is UINT32_MAX.
+// (And it never underflows, because it's never zero).
 #include "types.h"
 
 #define MAX_TASKS        16

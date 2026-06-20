@@ -80,7 +80,7 @@ uint32_t irq_handler(interrupt_frame_t* frame) {
         irq_handlers[irq_num](frame);
     }
     
-    // Timer (IRQ 0) – invoke the round-robin scheduler
+    // Timer (IRQ 0) ï¿½ invoke the round-robin scheduler
     if (irq_num == 0) {
         pic_send_eoi(0);
         return scheduler_tick((uint32_t)frame);
