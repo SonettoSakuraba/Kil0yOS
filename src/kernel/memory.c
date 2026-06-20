@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "memory.h"
 #include "string.h"
 
@@ -13,8 +14,38 @@ typedef struct heap_block {
 static heap_block_t* heap_list = NULL;
 
 void memory_init(memory_map_t* map, size_t count) {
-    heap_start = (uint8_t*)0x200000;
-    heap_end = (uint8_t*)0x10000000;
+    uint8_t* default_start = (uint8_t*)0x200000;
+    uint8_t* default_end = (uint8_t*)0x10000000;
+    
+    if (map != NULL && count > 0) {
+        uint64_t largest_size = 0;
+        uint8_t* largest_start = default_start;
+        
+        for (size_t i = 0; i < count; i++) {
+            memory_map_t* entry = &map[i];
+            
+            if (entry->type != 1) continue;
+            
+            uint64_t base = ((uint64_t)entry->base_addr_high << 32) | entry->base_addr_low;
+            uint64_t length = ((uint64_t)entry->length_high << 32) | entry->length_low;
+            
+            if (length > largest_size && base >= 0x200000) {
+                largest_size = length;
+                largest_start = (uint8_t*)base;
+            }
+        }
+        
+        if (largest_size > 0x100000) {
+            heap_start = largest_start;
+            heap_end = largest_start + (largest_size > 0x10000000 ? 0x10000000 : largest_size);
+        } else {
+            heap_start = default_start;
+            heap_end = default_end;
+        }
+    } else {
+        heap_start = default_start;
+        heap_end = default_end;
+    }
     
     heap_list = (heap_block_t*)heap_start;
     heap_list->size = heap_end - heap_start - sizeof(heap_block_t);
@@ -46,7 +77,15 @@ void* kmalloc(size_t size) {
         current = current->next;
     }
     
-    uint8_t* new_block_addr = prev ? (uint8_t*)(prev + 1) + prev->size : heap_start;
+    uint8_t* new_block_addr;
+    
+    if (prev != NULL) {
+        new_block_addr = (uint8_t*)(prev + 1) + prev->size;
+    } else if (heap_list != NULL) {
+        new_block_addr = (uint8_t*)(heap_list + 1) + heap_list->size;
+    } else {
+        new_block_addr = heap_start;
+    }
     
     if (new_block_addr + sizeof(heap_block_t) + size <= heap_end) {
         heap_block_t* block = (heap_block_t*)new_block_addr;
@@ -56,6 +95,8 @@ void* kmalloc(size_t size) {
         
         if (prev != NULL) {
             prev->next = block;
+        } else if (heap_list == NULL) {
+            heap_list = block;
         }
         
         return (void*)(block + 1);

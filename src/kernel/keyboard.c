@@ -68,9 +68,11 @@ static void process_scancode(uint8_t scancode) {
         }
         
         if (buffer_count < BUFFER_SIZE) {
+            disable_interrupts();
             keyboard_buffer[buffer_head] = c;
             buffer_head = (buffer_head + 1) % BUFFER_SIZE;
             buffer_count++;
+            enable_interrupts();
         }
     }
 }
@@ -100,33 +102,43 @@ void keyboard_handler(interrupt_frame_t* frame) {
     if (extended) {
         if (scancode == 0x53) {
             if (buffer_count < BUFFER_SIZE) {
+                disable_interrupts();
                 keyboard_buffer[buffer_head] = '\b';
                 buffer_head = (buffer_head + 1) % BUFFER_SIZE;
                 buffer_count++;
+                enable_interrupts();
             }
         } else if (scancode == 0x48) {
             if (buffer_count < BUFFER_SIZE) {
+                disable_interrupts();
                 keyboard_buffer[buffer_head] = 0x80;
                 buffer_head = (buffer_head + 1) % BUFFER_SIZE;
                 buffer_count++;
+                enable_interrupts();
             }
         } else if (scancode == 0x50) {
             if (buffer_count < BUFFER_SIZE) {
+                disable_interrupts();
                 keyboard_buffer[buffer_head] = 0x81;
                 buffer_head = (buffer_head + 1) % BUFFER_SIZE;
                 buffer_count++;
+                enable_interrupts();
             }
         } else if (scancode == 0x4B) {
             if (buffer_count < BUFFER_SIZE) {
+                disable_interrupts();
                 keyboard_buffer[buffer_head] = 0x82;
                 buffer_head = (buffer_head + 1) % BUFFER_SIZE;
                 buffer_count++;
+                enable_interrupts();
             }
         } else if (scancode == 0x4D) {
             if (buffer_count < BUFFER_SIZE) {
+                disable_interrupts();
                 keyboard_buffer[buffer_head] = 0x83;
                 buffer_head = (buffer_head + 1) % BUFFER_SIZE;
                 buffer_count++;
+                enable_interrupts();
             }
         }
         extended = 0;
@@ -171,11 +183,13 @@ static int keyboard_device_read(device_t* dev, void* buffer, size_t size) {
     char* buf = (char*)buffer;
     int count = 0;
     
+    disable_interrupts();
     while (count < (int)size && buffer_count > 0) {
         buf[count++] = keyboard_buffer[buffer_tail];
         buffer_tail = (buffer_tail + 1) % BUFFER_SIZE;
         buffer_count--;
     }
+    enable_interrupts();
     
     return count;
 }
@@ -206,12 +220,16 @@ void keyboard_init() {
 }
 
 char keyboard_getc() {
-    while (buffer_count == 0) {
+    while (1) {
+        disable_interrupts();
+        if (buffer_count > 0) {
+            char c = keyboard_buffer[buffer_tail];
+            buffer_tail = (buffer_tail + 1) % BUFFER_SIZE;
+            buffer_count--;
+            enable_interrupts();
+            return c;
+        }
+        enable_interrupts();
         __asm__ volatile("hlt");
     }
-    
-    char c = keyboard_buffer[buffer_tail];
-    buffer_tail = (buffer_tail + 1) % BUFFER_SIZE;
-    buffer_count--;
-    return c;
 }

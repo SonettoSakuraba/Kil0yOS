@@ -75,9 +75,4 @@ void irq_handler(interrupt_frame_t* frame) {
     if (irq_handlers[irq_num] != 0) {
         irq_handlers[irq_num](frame);
     }
-    
-    if (irq_num >= 8) {
-        outb(0xA0, 0x20);
-    }
-    outb(0x20, 0x20);
 }
