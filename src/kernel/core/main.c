@@ -6,11 +6,13 @@
 #include "drivers/vga.h"
 #include "drivers/keyboard.h"
 #include "drivers/power.h"
+#include "drivers/pci.h"
 #include "shell/shell.h"
 #include "fs/fs.h"
 #include "drivers/device.h"
 #include "timer/pit.h"
 #include "sched/scheduler.h"
+#include "net/net.h"
 void kernel_main() {
     vga_init();
     
@@ -67,6 +69,14 @@ void kernel_main() {
     vga_puts("[Power] Initializing ACPI...\n");
     power_init();
     vga_puts("[Power] OK\n");
+    
+    vga_puts("[PCI] Initializing\n");
+    pci_init();
+    vga_puts("[PCI] OK\n");
+    
+    vga_puts("[Network] Initializing\n");
+    net_init();
+    vga_puts("[Network] OK\n");
     
     vga_puts("\nWelcome!\n");
     vga_puts("Type 'help' for available commands.\n\n");

@@ -26,7 +26,14 @@ DRIVERS_SRCS = $(SRCDIR)/kernel/drivers/vga.c \
                $(SRCDIR)/kernel/drivers/keyboard.c \
                $(SRCDIR)/kernel/drivers/disk.c \
                $(SRCDIR)/kernel/drivers/device.c \
-               $(SRCDIR)/kernel/drivers/power.c
+               $(SRCDIR)/kernel/drivers/power.c \
+               $(SRCDIR)/kernel/drivers/pci.c
+
+# --- Network ---
+NET_SRCS = $(SRCDIR)/kernel/net/net.c \
+           $(SRCDIR)/kernel/net/rtl8139.c \
+           $(SRCDIR)/kernel/net/dhcp.c \
+           $(SRCDIR)/kernel/net/udp.c
 
 # --- Filesystem ---
 FS_SRCS = $(SRCDIR)/kernel/fs/fs.c \
@@ -49,6 +56,7 @@ TIMER_SRCS = $(SRCDIR)/kernel/timer/pit.c
 KERNEL_SRCS = $(CORE_SRCS) \
               $(MM_SRCS) \
               $(DRIVERS_SRCS) \
+              $(NET_SRCS) \
               $(FS_SRCS) \
               $(LIB_SRCS) \
               $(SHELL_SRCS) \

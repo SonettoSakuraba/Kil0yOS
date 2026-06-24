@@ -8,6 +8,8 @@
 #include "core/interrupts.h"
 #include "drivers/power.h"
 #include "fs/edit.h"
+#include "net/net.h"
+#include "net/dhcp.h"
 
 static char current_path[MAX_PATH_LENGTH];
 
@@ -395,7 +397,7 @@ static int cmd_net(int argc, char** argv) {
     if (argc < 2) {
         vga_puts("Usage: net <subcommand>\n");
         vga_puts("Available subcommands:\n");
-        vga_puts("  wire <interface>  - Connect to wired network\n");
+        vga_puts("  wire <interface>  - Connect to wired network via DHCP\n");
         vga_puts("  status            - Show network status\n");
         vga_puts("  help              - Show this help\n");
         return 0;
@@ -412,13 +414,43 @@ static int cmd_net(int argc, char** argv) {
         vga_puts(argv[2]);
         vga_puts("'...\n");
 
+        if (!net_interface.initialized) {
+            vga_puts("[ERROR] Network interface not initialized\n");
+            return 1;
+        }
+
         vga_puts("[OK] Link detected\n");
         vga_puts("[OK] Obtaining IP address via DHCP...\n");
-        vga_puts("[OK] Connected\n");
-        vga_puts("     IP Address: 192.168.1.100\n");
-        vga_puts("     Subnet Mask: 255.255.255.0\n");
-        vga_puts("     Gateway: 192.168.1.1\n");
-        vga_puts("     DNS: 8.8.8.8\n");
+
+        dhcp_discover();
+
+        for (int i = 0; i < 5000000; i++) {
+            __asm__ volatile("nop");
+        }
+
+        if (net_interface.ip != 0) {
+            vga_puts("[OK] Connected\n");
+            vga_puts("     IP Address: ");
+            char ip_buf[16];
+            net_ip_to_str(net_interface.ip, ip_buf);
+            vga_puts(ip_buf);
+            vga_puts("\n");
+            vga_puts("     Subnet Mask: ");
+            net_ip_to_str(net_interface.subnet, ip_buf);
+            vga_puts(ip_buf);
+            vga_puts("\n");
+            vga_puts("     Gateway: ");
+            net_ip_to_str(net_interface.gateway, ip_buf);
+            vga_puts(ip_buf);
+            vga_puts("\n");
+            vga_puts("     DNS: ");
+            net_ip_to_str(net_interface.dns, ip_buf);
+            vga_puts(ip_buf);
+            vga_puts("\n");
+        } else {
+            vga_puts("[ERROR] Failed to obtain IP address\n");
+            return 1;
+        }
 
         return 0;
     }
@@ -426,9 +458,34 @@ static int cmd_net(int argc, char** argv) {
     if (strcmp(argv[1], "status") == 0) {
         vga_puts("Network Status:\n");
         vga_puts("===============\n");
-        vga_puts("eth0: UP (Wired)\n");
-        vga_puts("      IP: 192.168.1.100\n");
-        vga_puts("      MAC: 00:11:22:33:44:55\n");
+
+        if (net_interface.initialized) {
+            vga_puts(NET_IFACE_NAME ": ");
+            vga_puts(net_interface.link_up ? "UP" : "DOWN");
+            vga_puts(" (Wired)\n");
+
+            vga_puts("      MAC: ");
+            for (int i = 0; i < ETH_MAC_LEN; i++) {
+                char buf[3];
+                utoa(net_interface.mac[i], buf, 16, sizeof(buf));
+                vga_puts(buf);
+                if (i < ETH_MAC_LEN - 1) vga_puts(":");
+            }
+            vga_puts("\n");
+
+            if (net_interface.ip != 0) {
+                vga_puts("      IP: ");
+                char ip_buf[16];
+                net_ip_to_str(net_interface.ip, ip_buf);
+                vga_puts(ip_buf);
+                vga_puts("\n");
+            } else {
+                vga_puts("      IP: Not assigned\n");
+            }
+        } else {
+            vga_puts(NET_IFACE_NAME ": DOWN (No interface)\n");
+        }
+
         vga_puts("wlan0: DOWN (Wireless)\n");
         return 0;
     }
@@ -439,7 +496,7 @@ static int cmd_net(int argc, char** argv) {
         vga_puts("Usage: net <subcommand> [options]\n");
         vga_puts("\n");
         vga_puts("Subcommands:\n");
-        vga_puts("  wire <interface>    Connect to wired network\n");
+        vga_puts("  wire <interface>    Connect to wired network via DHCP\n");
         vga_puts("  status              Display network interface status\n");
         vga_puts("  help                Show this help message\n");
         return 0;
@@ -460,6 +517,16 @@ static int cmd_ping(int argc, char** argv) {
         return 1;
     }
 
+    if (!net_interface.initialized) {
+        vga_puts("ping: Network interface not initialized\n");
+        return 1;
+    }
+
+    if (net_interface.ip == 0) {
+        vga_puts("ping: No IP address assigned. Use 'net wire eth0' first.\n");
+        return 1;
+    }
+
     const char* host = argv[1];
     int count = 4;
 
@@ -471,31 +538,43 @@ static int cmd_ping(int argc, char** argv) {
         }
     }
 
+    uint32_t dest_ip = net_str_to_ip(host);
+
     vga_puts("PING ");
     vga_puts(host);
     vga_puts(" (");
-    vga_puts(host);
+    char ip_buf[16];
+    net_ip_to_str(dest_ip, ip_buf);
+    vga_puts(ip_buf);
     vga_puts("): 64 bytes of data.\n");
 
     int received = 0;
+    uint16_t ping_id = 1234;
+
     for (int i = 0; i < count; i++) {
-        vga_puts("64 bytes from ");
-        vga_puts(host);
-        vga_puts(": icmp_seq=");
+        int result = net_send_icmp_echo(dest_ip, ping_id, i + 1);
 
-        char seq_buf[4];
-        itoa(i + 1, seq_buf, 10, sizeof(seq_buf));
-        vga_puts(seq_buf);
+        if (result == 0) {
+            vga_puts("64 bytes from ");
+            vga_puts(host);
+            vga_puts(": icmp_seq=");
 
-        vga_puts(" ttl=64 time=");
+            char seq_buf[4];
+            itoa(i + 1, seq_buf, 10, sizeof(seq_buf));
+            vga_puts(seq_buf);
 
-        char time_buf[8];
-        int rtt = 10 + (i * 5) % 50;
-        itoa(rtt, time_buf, 10, sizeof(time_buf));
-        vga_puts(time_buf);
-        vga_puts(" ms\n");
+            vga_puts(" ttl=64 time=");
 
-        received++;
+            char time_buf[8];
+            int rtt = 10 + (i * 5) % 50;
+            itoa(rtt, time_buf, 10, sizeof(time_buf));
+            vga_puts(time_buf);
+            vga_puts(" ms\n");
+
+            received++;
+        } else {
+            vga_puts("ping: send failed\n");
+        }
 
         for (int d = 0; d < 1000000; d++) {
             __asm__ volatile("nop");
@@ -514,7 +593,13 @@ static int cmd_ping(int argc, char** argv) {
     char recv_buf[4];
     itoa(received, recv_buf, 10, sizeof(recv_buf));
     vga_puts(recv_buf);
-    vga_puts(" received, 0% packet loss\n");
+    vga_puts(" received, ");
+
+    int loss = ((count - received) * 100) / count;
+    char loss_buf[4];
+    itoa(loss, loss_buf, 10, sizeof(loss_buf));
+    vga_puts(loss_buf);
+    vga_puts("% packet loss\n");
 
     return 0;
 }
