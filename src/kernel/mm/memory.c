@@ -9,6 +9,8 @@ typedef struct heap_block {
     size_t size;
     struct heap_block* next;
     int free;
+    /* Pad to 16 bytes: ensures (block+1) returns aligned pointer */
+    int _pad;
 } heap_block_t;
 
 static heap_block_t* heap_list = NULL;
@@ -122,6 +124,7 @@ void kfree(void* ptr) {
 }
 
 void* kcalloc(size_t nmemb, size_t size) {
+    if (nmemb != 0 && size > (size_t)-1 / nmemb) return NULL;
     size_t total = nmemb * size;
     void* ptr = kmalloc(total);
     if (ptr != NULL) {

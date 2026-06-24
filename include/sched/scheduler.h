@@ -6,7 +6,7 @@
 #include "lib/types.h"
 
 #define MAX_TASKS        16
-#define TASK_STACK_SIZE  4096
+#define TASK_STACK_SIZE 16384
 
 #define TASK_DEAD    0
 #define TASK_READY   1

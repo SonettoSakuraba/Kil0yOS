@@ -30,32 +30,33 @@ uint32_t strtoul(const char* str, char** endptr, int base) {
     return result;
 }
 
-void itoa(int num, char* str, int base) {
+void itoa(int num, char* str, int base, int max_size) {
+    if (max_size < 2) { str[0] = '\0'; return; }
     char* ptr = str;
     char* low;
     int n = num;
-    
+
     if (n == 0) {
         *ptr++ = '0';
         *ptr = '\0';
         return;
     }
-    
+
     if (n < 0 && base == 10) {
         *ptr++ = '-';
         n = -n;
     }
-    
+
     low = ptr;
-    
-    while (n) {
+
+    while (n && ptr - str < max_size - 1) {
         int remainder = n % base;
         *ptr++ = remainder < 10 ? remainder + '0' : remainder + 'A' - 10;
         n /= base;
     }
-    
+
     *ptr-- = '\0';
-    
+
     while (low < ptr) {
         char temp = *low;
         *low++ = *ptr;
@@ -63,7 +64,8 @@ void itoa(int num, char* str, int base) {
     }
 }
 
-void utoa(uint32_t num, char* str, int base) {
+void utoa(uint32_t num, char* str, int base, int max_size) {
+    if (max_size < 2) { str[0] = '\0'; return; }
     char* ptr = str;
     char* low;
     uint32_t n = num;
@@ -75,8 +77,8 @@ void utoa(uint32_t num, char* str, int base) {
     }
     
     low = ptr;
-    
-    while (n) {
+
+    while (n && ptr - str < max_size - 1) {
         int remainder = n % base;
         *ptr++ = remainder < 10 ? remainder + '0' : remainder + 'A' - 10;
         n /= base;
