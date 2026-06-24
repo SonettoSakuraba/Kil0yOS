@@ -74,7 +74,7 @@ typedef struct e1000_rx_desc {
 
 extern uint8_t e1000_mac[6];
 
-int e1000_init(uint16_t io_base);
+int e1000_init(uint32_t io_base);
 int e1000_send(uint8_t* data, size_t len);
 void e1000_receive();
 uint8_t* e1000_arp_cache_lookup(uint32_t ip);

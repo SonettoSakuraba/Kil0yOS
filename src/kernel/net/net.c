@@ -235,7 +235,7 @@ void net_init() {
     
     pci_device_t* dev = pci_find_device(E1000_VENDOR_ID, E1000_DEVICE_ID);
     if (dev != NULL) {
-        if (e1000_init((uint16_t)dev->bar0) == 0) {
+        if (e1000_init(dev->bar0) == 0) {
             memcpy(net_interface.mac, e1000_mac, ETH_MAC_LEN);
             net_interface.initialized = 1;
             net_interface.link_up = 1;

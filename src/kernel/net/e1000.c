@@ -3,7 +3,6 @@
 #include "net/endian.h"
 #include "drivers/vga.h"
 #include "drivers/pci.h"
-#include "drivers/io.h"
 #include "core/interrupts.h"
 #include "core/isr.h"
 #include "mm/memory.h"
@@ -20,7 +19,7 @@ typedef struct arp_entry {
 
 static arp_entry_t arp_cache[ARP_CACHE_SIZE];
 
-static uint16_t e1000_io_base = 0;
+static volatile uint32_t* e1000_io_base = NULL;
 static e1000_tx_desc_t* e1000_tx_descs = NULL;
 static uint8_t* e1000_tx_buffers = NULL;
 static e1000_rx_desc_t* e1000_rx_descs = NULL;
@@ -31,11 +30,11 @@ static int e1000_current_rx = 0;
 uint8_t e1000_mac[6];
 
 static inline void e1000_write_reg32(uint32_t offset, uint32_t value) {
-    outd(e1000_io_base + offset, value);
+    e1000_io_base[offset / 4] = value;
 }
 
 static inline uint32_t e1000_read_reg32(uint32_t offset) {
-    return ind(e1000_io_base + offset);
+    return e1000_io_base[offset / 4];
 }
 
 static void e1000_read_mac() {
@@ -140,8 +139,8 @@ void e1000_arp_cache_update(uint32_t ip, uint8_t* mac) {
     arp_cache[0].ip = ip;
 }
 
-int e1000_init(uint16_t io_base) {
-    e1000_io_base = io_base;
+int e1000_init(uint32_t io_base) {
+    e1000_io_base = (volatile uint32_t*)io_base;
     
     vga_puts("[E1000] Initializing...\n");
     
@@ -170,7 +169,7 @@ int e1000_init(uint16_t io_base) {
 }
 
 int e1000_send(uint8_t* data, size_t len) {
-    if (e1000_io_base == 0) return -1;
+    if (e1000_io_base == NULL) return -1;
     
     if (len > E1000_BUFFER_SIZE) return -1;
     
