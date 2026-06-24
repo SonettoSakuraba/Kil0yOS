@@ -97,14 +97,21 @@ int net_send_arp_request(uint32_t target_ip) {
 int net_send_ipv4(uint32_t dest_ip, uint8_t protocol, uint8_t* data, size_t data_len) {
     if (!net_interface.initialized) return -1;
 
-    uint8_t* dest_mac = net_resolve_mac(dest_ip);
-    if (dest_mac == NULL) {
-        net_send_arp_request(dest_ip);
-        for (int i = 0; i < 1000000; i++) {
-            __asm__ volatile("nop");
+    uint8_t dest_mac[ETH_MAC_LEN];
+    
+    if (dest_ip == 0xFFFFFFFF) {
+        memset(dest_mac, 0xFF, ETH_MAC_LEN);
+    } else {
+        uint8_t* resolved_mac = net_resolve_mac(dest_ip);
+        if (resolved_mac == NULL) {
+            net_send_arp_request(dest_ip);
+            for (int i = 0; i < 1000000; i++) {
+                __asm__ volatile("nop");
+            }
+            resolved_mac = net_resolve_mac(dest_ip);
+            if (resolved_mac == NULL) return -1;
         }
-        dest_mac = net_resolve_mac(dest_ip);
-        if (dest_mac == NULL) return -1;
+        memcpy(dest_mac, resolved_mac, ETH_MAC_LEN);
     }
 
     ipv4_header_t ip;
@@ -121,7 +128,7 @@ int net_send_ipv4(uint32_t dest_ip, uint8_t protocol, uint8_t* data, size_t data
     ip.checksum = net_checksum((uint16_t*)&ip, sizeof(ipv4_header_t));
 
     eth_header_t eth;
-    memcpy(eth.dest_mac, (uint8_t*)&dest_mac, ETH_MAC_LEN);
+    memcpy(eth.dest_mac, dest_mac, ETH_MAC_LEN);
     memcpy(eth.src_mac, net_interface.mac, ETH_MAC_LEN);
     eth.eth_type = htons(ETH_TYPE_IPV4);
 
