@@ -1,6 +1,7 @@
 #include "net/net.h"
 #include "net/rtl8139.h"
 #include "net/e1000.h"
+#include "net/udp.h"
 #include "net/endian.h"
 #include "drivers/vga.h"
 #include "drivers/pci.h"
@@ -215,6 +216,23 @@ static void net_handle_icmp(uint8_t* packet, size_t len) {
     }
 }
 
+static void net_handle_ipv4(uint8_t* packet, size_t len) {
+    if (len < sizeof(eth_header_t) + sizeof(ipv4_header_t)) return;
+    
+    ipv4_header_t* ip = (ipv4_header_t*)(packet + sizeof(eth_header_t));
+    
+    if (ip->version_ihl != 0x45) return;
+    
+    switch (ip->protocol) {
+        case IPV4_PROTO_ICMP:
+            net_handle_icmp(packet, len);
+            break;
+        case IPV4_PROTO_UDP:
+            udp_handle_packet(packet, len);
+            break;
+    }
+}
+
 void net_handle_packet(uint8_t* packet, size_t len) {
     if (len < sizeof(eth_header_t)) return;
 
@@ -225,7 +243,7 @@ void net_handle_packet(uint8_t* packet, size_t len) {
             net_handle_arp(packet, len);
             break;
         case ETH_TYPE_IPV4:
-            net_handle_icmp(packet, len);
+            net_handle_ipv4(packet, len);
             break;
     }
 }
