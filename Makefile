@@ -11,26 +11,51 @@ SRCDIR = src
 INCDIR = include
 BUILDDIR = build
 
-KERNEL_SRCS = $(SRCDIR)/kernel/main.c \
-              $(SRCDIR)/kernel/gdt.c \
-              $(SRCDIR)/kernel/idt.c \
-              $(SRCDIR)/kernel/isr.c \
-              $(SRCDIR)/kernel/interrupts.c \
-              $(SRCDIR)/kernel/memory.c \
-              $(SRCDIR)/kernel/vga.c \
-              $(SRCDIR)/kernel/keyboard.c \
-              $(SRCDIR)/kernel/string.c \
-              $(SRCDIR)/kernel/stdlib.c \
-              $(SRCDIR)/kernel/fs.c \
-              $(SRCDIR)/kernel/shell.c \
-              $(SRCDIR)/kernel/edit.c \
-              $(SRCDIR)/kernel/disk.c \
-              $(SRCDIR)/kernel/device.c \
-              $(SRCDIR)/kernel/pit.c \
-              $(SRCDIR)/kernel/scheduler.c
+# --- Core (CPU architecture, entry, interrupts) ---
+CORE_SRCS = $(SRCDIR)/kernel/core/main.c \
+            $(SRCDIR)/kernel/core/gdt.c \
+            $(SRCDIR)/kernel/core/idt.c \
+            $(SRCDIR)/kernel/core/isr.c \
+            $(SRCDIR)/kernel/core/interrupts.c
+
+# --- Memory Management ---
+MM_SRCS = $(SRCDIR)/kernel/mm/memory.c
+
+# --- Device Drivers ---
+DRIVERS_SRCS = $(SRCDIR)/kernel/drivers/vga.c \
+               $(SRCDIR)/kernel/drivers/keyboard.c \
+               $(SRCDIR)/kernel/drivers/disk.c \
+               $(SRCDIR)/kernel/drivers/device.c
+
+# --- Filesystem ---
+FS_SRCS = $(SRCDIR)/kernel/fs/fs.c \
+          $(SRCDIR)/kernel/fs/edit.c
+
+# --- Standard Library ---
+LIB_SRCS = $(SRCDIR)/kernel/lib/string.c \
+           $(SRCDIR)/kernel/lib/stdlib.c
+
+# --- Shell ---
+SHELL_SRCS = $(SRCDIR)/kernel/shell/shell.c
+
+# --- Scheduler ---
+SCHED_SRCS = $(SRCDIR)/kernel/sched/scheduler.c
+
+# --- Timer ---
+TIMER_SRCS = $(SRCDIR)/kernel/timer/pit.c
+
+# --- All kernel sources ---
+KERNEL_SRCS = $(CORE_SRCS) \
+              $(MM_SRCS) \
+              $(DRIVERS_SRCS) \
+              $(FS_SRCS) \
+              $(LIB_SRCS) \
+              $(SHELL_SRCS) \
+              $(SCHED_SRCS) \
+              $(TIMER_SRCS)
 
 KERNEL_OBJS = $(patsubst $(SRCDIR)/%.c, $(BUILDDIR)/%.o, $(KERNEL_SRCS))
-KERNEL_ASM_OBJS = $(BUILDDIR)/kernel/isr_asm.o
+KERNEL_ASM_OBJS = $(BUILDDIR)/kernel/core/isr_asm.o
 BOOT_OBJ = $(BUILDDIR)/boot/boot.o
 
 .PHONY: all clean run iso
@@ -45,7 +70,7 @@ $(BOOT_OBJ): $(SRCDIR)/boot/boot.asm
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(KERNEL_ASM_OBJS): $(SRCDIR)/kernel/isr.asm
+$(KERNEL_ASM_OBJS): $(SRCDIR)/kernel/core/isr.asm
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
