@@ -15,7 +15,7 @@ static const char* filename = NULL;
 static void edit_draw_status_bar() {
     vga_set_color(vga_entry_color(COLOR_WHITE, COLOR_BLUE));
     for (int i = 0; i < VGA_WIDTH; i++) {
-        vga_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + i] = vga_entry(' ', vga_color);
+        vga_putchar(' ');
     }
     
     vga_set_color(vga_entry_color(COLOR_WHITE, COLOR_BLUE));

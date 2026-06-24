@@ -6,6 +6,7 @@
 #include "fs/fs.h"
 #include "mm/memory.h"
 #include "core/interrupts.h"
+#include "drivers/power.h"
 #include "fs/edit.h"
 
 static char current_path[MAX_PATH_LENGTH];
@@ -273,10 +274,7 @@ static int cmd_shutdown(int argc, char** argv) {
     vga_puts("Saving filesystem...\n");
     fs_save();
     vga_puts("Shutting down Kil0yOS...\n");
-    disable_interrupts();
-    while (1) {
-        __asm__ volatile("hlt");
-    }
+    power_shutdown();
     return 0;
 }
 

@@ -22,8 +22,10 @@
 #define ATA_CMD_IDENTIFY 0xEC
 
 #define ATA_STATUS_BUSY 0x80
-#define ATA_STATUS_DRQ 0x08
+#define ATA_STATUS_DRQ  0x08
 #define ATA_STATUS_ERROR 0x01
+
+#define DISK_TIMEOUT_COUNT 100000
 
 static int disk_present = 0;
 
@@ -43,19 +45,23 @@ static device_t disk_device = {
     .ioctl = disk_device_ioctl
 };
 
-static void disk_wait_ready() {
+static int disk_wait_ready() {
     uint8_t status;
-    do {
+    for (int i = 0; i < DISK_TIMEOUT_COUNT; i++) {
         status = inb(ATA_PRIMARY_IO_BASE + ATA_REG_STATUS);
-    } while (status & ATA_STATUS_BUSY);
+        if (!(status & ATA_STATUS_BUSY)) return 0;
+    }
+    return -1;
 }
 
-static void disk_wait_drq() {
+static int disk_wait_drq() {
     uint8_t status;
-    do {
+    for (int i = 0; i < DISK_TIMEOUT_COUNT; i++) {
         status = inb(ATA_PRIMARY_IO_BASE + ATA_REG_STATUS);
-        if (status & ATA_STATUS_ERROR) return;
-    } while (!(status & ATA_STATUS_DRQ));
+        if (status & ATA_STATUS_ERROR) return -1;
+        if (status & ATA_STATUS_DRQ) return 0;
+    }
+    return -1;
 }
 
 void disk_init() {
@@ -75,8 +81,11 @@ void disk_init() {
         return;
     }
     
-    disk_wait_ready();
-    
+    if (disk_wait_ready() != 0) {
+        disk_present = 0;
+        return;
+    }
+
     status = inb(ATA_PRIMARY_IO_BASE + ATA_REG_STATUS);
     if ((status & ATA_STATUS_ERROR) || !(status & ATA_STATUS_DRQ)) {
         disk_present = 0;
@@ -102,9 +111,8 @@ int disk_read_sector(uint32_t sector, uint8_t* buffer) {
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_LBA_MID, (sector >> 8) & 0xFF);
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_LBA_HIGH, (sector >> 16) & 0xFF);
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_COMMAND, ATA_CMD_READ_PIO);
-    
-    disk_wait_ready();
-    disk_wait_drq();
+
+    if (disk_wait_ready() != 0 || disk_wait_drq() != 0) return -1;
     
     for (int i = 0; i < 256; i++) {
         uint16_t word = inw(ATA_PRIMARY_IO_BASE + ATA_REG_DATA);
@@ -126,9 +134,8 @@ int disk_write_sector(uint32_t sector, const uint8_t* buffer) {
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_LBA_MID, (sector >> 8) & 0xFF);
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_LBA_HIGH, (sector >> 16) & 0xFF);
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_COMMAND, ATA_CMD_WRITE_PIO);
-    
-    disk_wait_ready();
-    disk_wait_drq();
+
+    if (disk_wait_ready() != 0 || disk_wait_drq() != 0) return -1;
     
     for (int i = 0; i < 256; i++) {
         uint16_t word = (buffer[i * 2 + 1] << 8) | buffer[i * 2];
@@ -136,7 +143,7 @@ int disk_write_sector(uint32_t sector, const uint8_t* buffer) {
     }
     
     outb(ATA_PRIMARY_IO_BASE + ATA_REG_COMMAND, 0xE7);
-    disk_wait_ready();
+    if (disk_wait_ready() != 0) return -1;
     
     return 0;
 }

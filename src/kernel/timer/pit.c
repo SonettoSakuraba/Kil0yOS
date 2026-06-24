@@ -7,7 +7,10 @@
 #define PIT_BASE_FREQ 1193180
 
 void pit_init(uint32_t frequency) {
+    if (frequency == 0 || frequency > PIT_BASE_FREQ) frequency = 1000;
+
     uint32_t divisor = PIT_BASE_FREQ / frequency;
+    if (divisor == 0 || divisor > 65535) divisor = 1193;
 
     // Channel 0, lobyte/hibyte, mode 2 (rate generator), 16-bit binary
     outb(PIT_COMMAND, 0x36);

@@ -222,10 +222,11 @@ void keyboard_init() {
 char keyboard_getc() {
     while (1) {
         disable_interrupts();
-        if (buffer_count > 0) {
+        int count = buffer_count;
+        if (count > 0) {
             char c = keyboard_buffer[buffer_tail];
             buffer_tail = (buffer_tail + 1) % BUFFER_SIZE;
-            buffer_count--;
+            buffer_count = count - 1;
             enable_interrupts();
             return c;
         }

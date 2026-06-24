@@ -25,7 +25,8 @@ MM_SRCS = $(SRCDIR)/kernel/mm/memory.c
 DRIVERS_SRCS = $(SRCDIR)/kernel/drivers/vga.c \
                $(SRCDIR)/kernel/drivers/keyboard.c \
                $(SRCDIR)/kernel/drivers/disk.c \
-               $(SRCDIR)/kernel/drivers/device.c
+               $(SRCDIR)/kernel/drivers/device.c \
+               $(SRCDIR)/kernel/drivers/power.c
 
 # --- Filesystem ---
 FS_SRCS = $(SRCDIR)/kernel/fs/fs.c \

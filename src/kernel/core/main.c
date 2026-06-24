@@ -5,6 +5,7 @@
 #include "mm/memory.h"
 #include "drivers/vga.h"
 #include "drivers/keyboard.h"
+#include "drivers/power.h"
 #include "shell/shell.h"
 #include "fs/fs.h"
 #include "drivers/device.h"
@@ -62,6 +63,10 @@ void kernel_main() {
     vga_puts("[PIT] Initializing\n");
     pit_init(100);
     vga_puts("[PIT] OK\n");
+    
+    vga_puts("[Power] Initializing ACPI...\n");
+    power_init();
+    vga_puts("[Power] OK\n");
     
     vga_puts("\nWelcome!\n");
     vga_puts("Type 'help' for available commands.\n\n");
