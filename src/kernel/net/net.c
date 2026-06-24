@@ -1,7 +1,9 @@
 #include "net/net.h"
 #include "net/rtl8139.h"
+#include "net/e1000.h"
 #include "net/endian.h"
 #include "drivers/vga.h"
+#include "drivers/pci.h"
 #include "lib/string.h"
 #include "lib/stdlib.h"
 
@@ -59,7 +61,10 @@ int net_send_packet(uint8_t* data, size_t len) {
     if (!net_interface.initialized || !net_interface.link_up) {
         return -1;
     }
-    return rtl8139_send(data, len);
+    if (net_interface.send_packet != NULL) {
+        return net_interface.send_packet(data, len);
+    }
+    return -1;
 }
 
 int net_send_arp_request(uint32_t target_ip) {
@@ -149,7 +154,9 @@ static void net_handle_arp(uint8_t* packet, size_t len) {
     arp_header_t* arp = (arp_header_t*)(packet + sizeof(eth_header_t));
 
     if (ntohs(arp->op_code) == ARP_REPLY) {
-        rtl8139_arp_cache_update(arp->sender_ip, arp->sender_mac);
+        if (net_interface.update_arp_cache != NULL) {
+            net_interface.update_arp_cache(arp->sender_ip, arp->sender_mac);
+        }
     } else if (ntohs(arp->op_code) == ARP_REQUEST) {
         if (arp->target_ip == net_interface.ip) {
             arp_header_t reply;
@@ -217,13 +224,46 @@ void net_handle_packet(uint8_t* packet, size_t len) {
 }
 
 uint8_t* net_resolve_mac(uint32_t ip) {
-    return rtl8139_arp_cache_lookup(ip);
+    if (net_interface.resolve_mac != NULL) {
+        return net_interface.resolve_mac(ip);
+    }
+    return NULL;
 }
 
 void net_init() {
     memset(&net_interface, 0, sizeof(net_iface_t));
-
+    
+    pci_device_t* dev = pci_find_device(E1000_VENDOR_ID, E1000_DEVICE_ID);
+    if (dev != NULL) {
+        if (e1000_init((uint16_t)dev->bar0) == 0) {
+            memcpy(net_interface.mac, e1000_mac, ETH_MAC_LEN);
+            net_interface.initialized = 1;
+            net_interface.link_up = 1;
+            net_interface.send_packet = e1000_send;
+            net_interface.resolve_mac = e1000_arp_cache_lookup;
+            net_interface.update_arp_cache = e1000_arp_cache_update;
+            
+            vga_puts("[NET] Network interface initialized\n");
+            vga_puts("[NET] MAC: ");
+            for (int i = 0; i < ETH_MAC_LEN; i++) {
+                char buf[3];
+                utoa(net_interface.mac[i], buf, 16, sizeof(buf));
+                vga_puts(buf);
+                if (i < ETH_MAC_LEN - 1) vga_puts(":");
+            }
+            vga_puts("\n");
+            return;
+        }
+    }
+    
     if (rtl8139_init() == 0) {
+        memcpy(net_interface.mac, rtl8139_mac, ETH_MAC_LEN);
+        net_interface.initialized = 1;
+        net_interface.link_up = 1;
+        net_interface.send_packet = rtl8139_send;
+        net_interface.resolve_mac = rtl8139_arp_cache_lookup;
+        net_interface.update_arp_cache = rtl8139_arp_cache_update;
+        
         vga_puts("[NET] Network interface initialized\n");
         vga_puts("[NET] MAC: ");
         for (int i = 0; i < ETH_MAC_LEN; i++) {

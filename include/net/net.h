@@ -70,6 +70,10 @@ typedef struct net_iface {
     uint32_t dns;
     int initialized;
     int link_up;
+    
+    int (*send_packet)(uint8_t* data, size_t len);
+    uint8_t* (*resolve_mac)(uint32_t ip);
+    void (*update_arp_cache)(uint32_t ip, uint8_t* mac);
 } net_iface_t;
 
 extern net_iface_t net_interface;

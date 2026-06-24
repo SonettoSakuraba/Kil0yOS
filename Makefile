@@ -32,6 +32,7 @@ DRIVERS_SRCS = $(SRCDIR)/kernel/drivers/vga.c \
 # --- Network ---
 NET_SRCS = $(SRCDIR)/kernel/net/net.c \
            $(SRCDIR)/kernel/net/rtl8139.c \
+           $(SRCDIR)/kernel/net/e1000.c \
            $(SRCDIR)/kernel/net/dhcp.c \
            $(SRCDIR)/kernel/net/udp.c
 
