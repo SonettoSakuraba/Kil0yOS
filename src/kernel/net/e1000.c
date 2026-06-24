@@ -94,7 +94,7 @@ static void e1000_setup_rx() {
 static void e1000_enable_interrupts() {
     e1000_write_reg32(E1000_REG_IMS, E1000_IMS_RXT0 | E1000_IMS_TXDW);
 }
-
+// JUST FUCK IT OUT
 static void e1000_irq_handler(interrupt_frame_t* frame) {
     (void)frame;
     uint32_t icr = e1000_read_reg32(E1000_REG_ICR);
@@ -136,13 +136,17 @@ void e1000_arp_cache_update(uint32_t ip, uint8_t* mac) {
     }
     
     memcpy(arp_cache[0].mac, mac, 6);
-    arp_cache[0].ip = ip;
+    arp_cache[0].ip = ip; //FUCK FUCK FUCK FUCK FUCK
 }
 
-int e1000_init(uint32_t io_base) {
+int e1000_init(uint32_t io_base, uint16_t bus, uint16_t device, uint16_t func) {
     e1000_io_base = (volatile uint32_t*)io_base;
     
     vga_puts("[E1000] Initializing...\n");
+    
+    uint16_t cmd = pci_read_word(bus, device, func, PCI_COMMAND_OFFSET);
+    cmd |= 0x0003;
+    pci_write_word(bus, device, func, PCI_COMMAND_OFFSET, cmd);
     
     e1000_reset();
     e1000_read_mac();
@@ -188,6 +192,12 @@ int e1000_send(uint8_t* data, size_t len) {
     
     e1000_write_reg32(E1000_REG_TDT, e1000_current_tx);
     
+    vga_puts("[E1000] Sent ");
+    char buf[8];
+    itoa(len, buf, 10, sizeof(buf));
+    vga_puts(buf);
+    vga_puts(" bytes\n");
+    
     return 0;
 }
 
@@ -197,6 +207,11 @@ void e1000_receive() {
         uint8_t* buf = e1000_rx_buffers + e1000_current_rx * E1000_BUFFER_SIZE;
         
         if (len > 0 && len <= E1000_BUFFER_SIZE) {
+            vga_puts("[E1000] Received ");
+            char buf2[8];
+            itoa(len, buf2, 10, sizeof(buf2));
+            vga_puts(buf2);
+            vga_puts(" bytes\n");
             net_handle_packet(buf, len);
         }
         

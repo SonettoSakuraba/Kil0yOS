@@ -47,3 +47,4 @@ void pci_write_word(uint16_t bus, uint16_t device, uint16_t function, uint16_t o
 void pci_write_byte(uint16_t bus, uint16_t device, uint16_t function, uint16_t offset, uint8_t value);
 
 #endif
+//guys this is a pice of shit and need to be NUKED

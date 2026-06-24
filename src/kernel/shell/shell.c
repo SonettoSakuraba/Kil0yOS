@@ -476,6 +476,13 @@ static int cmd_net(int argc, char** argv) {
         vga_puts(argv[2]);
         vga_puts("'...\n");
 
+        if (strcmp(argv[2], "eth0") != 0) {
+            vga_puts("[ERROR] Interface '");
+            vga_puts(argv[2]);
+            vga_puts("' not found\n");
+            return 1;
+        }
+
         if (!net_interface.initialized) {
             vga_puts("[ERROR] Network interface not initialized\n");
             return 1;
@@ -488,6 +495,9 @@ static int cmd_net(int argc, char** argv) {
 
         for (int i = 0; i < 5000000; i++) {
             __asm__ volatile("nop");
+            if ((i % 100000) == 0) {
+                e1000_receive();
+            }
         }
 
         if (net_interface.ip != 0) {
@@ -511,6 +521,7 @@ static int cmd_net(int argc, char** argv) {
             vga_puts("\n");
         } else {
             vga_puts("[ERROR] Failed to obtain IP address\n");
+            vga_puts("[INFO] Check if DHCP server is available on the network\n");
             return 1;
         }
 
