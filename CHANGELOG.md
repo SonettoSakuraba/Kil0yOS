@@ -5,7 +5,7 @@
  This is a critical maintenance and feature enhancement release focused on fixing core network subsystem issues and improving overall system stability and reliability.
  All users relying on network functionality are strongly recommended to upgrade.
 ## Added
- New shell network commands:
+ ### New shell network commands:
   - net chknic: List all available network interfaces
   - net wire <interface>: Establish wired network connection
   - ping: Test network connectivity
