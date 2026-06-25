@@ -106,11 +106,7 @@ int net_send_ipv4(uint32_t dest_ip, uint8_t protocol, uint8_t* data, size_t data
         uint8_t* resolved_mac = net_resolve_mac(dest_ip);
         if (resolved_mac == NULL) {
             net_send_arp_request(dest_ip);
-            for (int i = 0; i < 1000000; i++) {
-                __asm__ volatile("nop");
-            }
-            resolved_mac = net_resolve_mac(dest_ip);
-            if (resolved_mac == NULL) return -1;
+            return NET_ERR_MAC_UNRESOLVED;
         }
         memcpy(dest_mac, resolved_mac, ETH_MAC_LEN);
     }

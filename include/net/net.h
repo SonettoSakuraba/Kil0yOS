@@ -88,4 +88,6 @@ void net_ip_to_str(uint32_t ip, char* buf);
 int net_send_ipv4(uint32_t dest_ip, uint8_t protocol, uint8_t* data, size_t data_len);
 void net_handle_packet(uint8_t* packet, size_t len);
 
+#define NET_ERR_MAC_UNRESOLVED -2
+
 #endif

@@ -493,10 +493,13 @@ static int cmd_net(int argc, char** argv) {
 
         dhcp_discover();
 
-        for (int i = 0; i < 5000000; i++) {
+        for (int i = 0; i < 20000000; i++) {
             __asm__ volatile("nop");
-            if ((i % 100000) == 0) {
-                e1000_receive();
+            if ((i % 10000) == 0) {
+                e1000_poll();
+            }
+            if (net_interface.ip != 0) {
+                break;
             }
         }
 

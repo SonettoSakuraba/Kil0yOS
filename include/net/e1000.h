@@ -37,6 +37,10 @@
 #define E1000_RCTL_BAM     (1 << 15)
 #define E1000_RCTL_SZ_2048 (0x0 << 10)
 #define E1000_RCTL_SECRC   (1 << 25)
+#define E1000_RCTL_UPE     (1 << 3)
+#define E1000_RCTL_MPE     (1 << 4)
+
+#define E1000_RAH_AV       (1 << 31)
 
 #define E1000_TCTL_EN      (1 << 1)
 #define E1000_TCTL_PSP     (1 << 3)
@@ -54,7 +58,7 @@
 #define E1000_RXD_STAT_EOP (1 << 1)
 
 typedef struct e1000_tx_desc {
-    uint64_t addr;
+    uint32_t addr;
     uint16_t len;
     uint8_t cso;
     uint8_t cmd;
@@ -64,7 +68,7 @@ typedef struct e1000_tx_desc {
 } __attribute__((packed)) e1000_tx_desc_t;
 
 typedef struct e1000_rx_desc {
-    uint64_t addr;
+    uint32_t addr;
     uint16_t len;
     uint16_t csum;
     uint8_t status;
@@ -77,6 +81,7 @@ extern uint8_t e1000_mac[6];
 int e1000_init(uint32_t io_base, uint16_t bus, uint16_t device, uint16_t func);
 int e1000_send(uint8_t* data, size_t len);
 void e1000_receive();
+void e1000_poll();
 uint8_t* e1000_arp_cache_lookup(uint32_t ip);
 void e1000_arp_cache_update(uint32_t ip, uint8_t* mac);
 

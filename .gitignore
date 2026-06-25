@@ -1,6 +1,7 @@
 build/
-.vscode/
+.vscode
 disk.img
 *.o
 *.bin
 *.iso
+e1000driverexpemple

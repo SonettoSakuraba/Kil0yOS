@@ -47,7 +47,7 @@ static void rtl8139_irq_handler(interrupt_frame_t* frame) {
     }
 
     if (isr & RTL8139_IRQ_TXE) {
-        rtl8139_write_reg16(RTL8139_REG_ISR, RTL8139_IRQ_TXE);
+        rtl8139_write_reg16(RTL8139_REG_ISR, RTL8139_IRQ_TXE); //awwwwwwwwwww
     }
 
     pic_send_eoi(11);
