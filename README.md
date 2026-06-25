@@ -1,6 +1,8 @@
-<p align="center"># Kil0yOS</p>
-
-![kil0yOSnotCtOS](./assets/banner.svg)
+<div align="center">
+  <img src="assets/banner.svg" alt="kil0yOSnotCtOS" width="100%" />
+  <h1>kil0yOS</h1>
+  <p><strong>A 32-bit microkernel operating system</strong></p>
+</div>
 
 ## Features
 
